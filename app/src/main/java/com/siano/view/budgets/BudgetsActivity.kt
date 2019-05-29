@@ -5,6 +5,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.MobileAds
 import com.jacekmarchwicki.universaladapter.ViewHolderManager
 import com.jakewharton.rxbinding3.swiperefreshlayout.refreshes
 import com.jakewharton.rxbinding3.view.clicks
@@ -41,6 +44,8 @@ class BudgetsActivity : AuthorizedActivity() {
             BaseViewHolderManager(R.layout.item_budget, ::BudgetsViewHolder, BudgetAdapterItem::class.java)
         )
     )
+    lateinit var mAdView : AdView
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,6 +77,12 @@ class BudgetsActivity : AuthorizedActivity() {
                 .switchMapSingle { presenter.refreshBudgetsObservable() }
                 .subscribe()
         )
+
+        MobileAds.initialize(this, "ca-app-pub-7074782982800621~3636826364")
+
+        mAdView = findViewById(R.id.adViewBudgets)
+        val adRequest = AdRequest.Builder().build()
+        mAdView.loadAd(adRequest)
     }
 
     private fun setUpRecyclerView() {
