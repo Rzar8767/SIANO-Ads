@@ -14,6 +14,7 @@ import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.MobileAds
 import com.jacekmarchwicki.universaladapter.ViewHolderManager
 import com.jakewharton.rxbinding3.appcompat.navigationClicks
+import com.jakewharton.rxbinding3.swiperefreshlayout.refreshes
 import com.jakewharton.rxbinding3.view.clicks
 import com.siano.R
 import com.siano.base.AuthorizedActivity
@@ -36,6 +37,9 @@ import org.funktionale.option.getOrElse
 import org.funktionale.option.toOption
 import javax.inject.Inject
 import javax.inject.Named
+import android.widget.Toast
+import io.reactivex.Single
+
 
 class BudgetActivity : AuthorizedActivity() {
 
@@ -73,6 +77,8 @@ class BudgetActivity : AuthorizedActivity() {
                 .subscribe { budget_activity_toolbar.title = it.name },
             presenter.itemsObservable
                 .subscribe(adapter),
+            presenter.itemsObservable
+                .subscribe { budget_list_refresh_layout.isRefreshing = false },
             presenter.deleteSuccessObservable()
                 .subscribe { finish() },
             presenter.deleteErrorObservable()
@@ -93,7 +99,7 @@ class BudgetActivity : AuthorizedActivity() {
             budget_activity_toolbar.menu.findItem(R.id.budget_generate_report).clicks()
                 .switchMapSingle {
                     requestPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    presenter.getReportSingle()
+                    Single.just(Unit)
                 }
                 .subscribe(),
             presenter.getReportTransactionsObservable.subscribe(),
@@ -101,7 +107,18 @@ class BudgetActivity : AuthorizedActivity() {
                 .withLatestFrom(presenter.budgetObservable) { _, budget -> budget.invite_code }
                 .subscribe { startActivity(shareBudgetCode(this, it)) },
             budget_activity_toolbar.navigationClicks()
-                .subscribe { finish() }
+                .subscribe { finish() },
+            budget_list_refresh_layout.refreshes()
+                .switchMap { presenter.refreshBudgetObservable() }
+                .subscribe(),
+            presenter.isUserBudgetOwnerObservable
+                .subscribe { visible ->
+                    budget_activity_toolbar.menu.apply {
+                        findItem(R.id.budget_menu_delete).isVisible = visible
+                        findItem(R.id.budget_menu_add_member).isVisible = visible
+                        findItem(R.id.budget_menu_edit).isVisible = visible
+                    }
+                }
         )
 
         MobileAds.initialize(this, "ca-app-pub-7074782982800621~3636826364")
@@ -122,7 +139,26 @@ class BudgetActivity : AuthorizedActivity() {
             }
         } else {
             // Permission has already been granted
+            generateReportAndToast()
         }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        when (requestCode) {
+            MY_PERMISSIONS_REQUEST_WRITE_FILE -> {
+                if (grantResults.size > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    generateReportAndToast()
+                } else {
+                    Toast.makeText(this, getString(com.siano.R.string.permission_denied), Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun generateReportAndToast(){
+        presenter.getReportSingle().subscribe()
+        Toast.makeText(this, getString(R.string.toast_report), Toast.LENGTH_SHORT).show()
     }
 
     private fun shareBudget(context: Context, budgetId: Long): Intent {

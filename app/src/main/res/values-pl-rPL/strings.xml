@@ -38,6 +38,7 @@
     <string name="invite_code">Kod zaproszenia</string>
 
     <string name="generate_report">Generuj raport</string>
+    <string name="log_out">Wyloguj się</string>
 
     <!-- Categories -->
     <string-array name="categories">
@@ -93,4 +94,7 @@
         <item>Charytatywne</item>
         <item>Prezenty</item>
     </string-array>
+    <string name="you_have_to_confirm_your_e_mail">Potwierdź adres email</string>
+    <string name="permission_denied">Musisz zezwolić na zapis plików na dysku</string>
+    <string name="toast_report">Wygenerowano raport, zapisano w Pobranych</string>
 </resources>
